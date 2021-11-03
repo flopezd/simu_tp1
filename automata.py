@@ -1,3 +1,5 @@
+from dataclasses import dataclass, field
+
 import numpy as np
 
 # 1 cell  = 0.5m, 1 step = 1 sec
@@ -25,22 +27,31 @@ GOING_UP_CAR = 6
 BLOCK = 7
 
 
-class PedestrianConflictAutomataModel:
-    crosswalk_width: int
-    pedestrian_waiting_length: int
-    full_grid_length: int
-    full_grid_width: int
-    lambda_p: float
+@dataclass
+class PedestrianConflictParameters:
+    crosswalk_width: int = 5  # 2.5m
+    lambda_p: float = 0.8
+    # lambda_p: float = 0.13
+    pedestrian_waiting_length: int = field(init=False)
+    full_grid_length: int = field(init=False)
+    full_grid_width: int = field(init=False)
 
-    def __init__(self):
-        self.crosswalk_width = 5  # 2.5m
+    def __post_init__(self):
         self.pedestrian_waiting_length = int(
             np.ceil(MAXIMUM_WAITING_PEDESTRIANS / self.crosswalk_width)
         )
         self.full_grid_length = self.crosswalk_width + 2 * CAR_START_POINT_LENGTH
         self.full_grid_width = ROAD_WIDTH + 2 * self.pedestrian_waiting_length
-        self.lambda_p = 0.8
-        # self.lambda_p = 0.13
+
+
+class PedestrianConflictAutomataModel:
+    pedestrian_conflict_parameters: PedestrianConflictParameters
+
+    def __init__(
+        self,
+        pedestrian_conflict_parameters: PedestrianConflictParameters = PedestrianConflictParameters(),
+    ):
+        self.pedestrian_conflict_parameters = pedestrian_conflict_parameters
 
     def get_initial_system_state(
         self,
@@ -297,21 +308,24 @@ class PedestrianConflictAutomataModel:
 
     def run(self, iterations: int):
         system_state = self.get_initial_system_state(
-            self.full_grid_length,
-            self.full_grid_width,
-            self.crosswalk_width,
-            self.pedestrian_waiting_length,
+            self.pedestrian_conflict_parameters.full_grid_length,
+            self.pedestrian_conflict_parameters.full_grid_width,
+            self.pedestrian_conflict_parameters.crosswalk_width,
+            self.pedestrian_conflict_parameters.pedestrian_waiting_length,
         )
         result = []
         for _ in range(iterations):
             result.append(system_state)
             self.add_incoming_cars_and_pedestrians(
                 system_state,
-                self.lambda_p,
-                self.crosswalk_width,
-                self.pedestrian_waiting_length,
-                self.full_grid_width,
+                self.pedestrian_conflict_parameters.lambda_p,
+                self.pedestrian_conflict_parameters.crosswalk_width,
+                self.pedestrian_conflict_parameters.pedestrian_waiting_length,
+                self.pedestrian_conflict_parameters.full_grid_width,
             )
-            self.move_pedestrians(system_state, self.pedestrian_waiting_length)
+            self.move_pedestrians(
+                system_state,
+                self.pedestrian_conflict_parameters.pedestrian_waiting_length,
+            )
 
         return result
