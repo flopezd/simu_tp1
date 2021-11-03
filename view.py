@@ -7,6 +7,33 @@ from matplotlib.colors import ListedColormap
 from automata import CAR, GOING_LEFT_PEDESTRIAN, GOING_UP_CAR, PEDESTRIAN
 
 
+def plot_system_state(system_state, full_grid_width, full_grid_length):
+    new_system_state = system_state.copy()
+    new_system_state[new_system_state == GOING_UP_CAR] = CAR
+    new_system_state[new_system_state == GOING_LEFT_PEDESTRIAN] = PEDESTRIAN
+
+    fig, ax = plt.subplots(figsize=(15, 7))
+    cmap = ListedColormap(["k", "b", "y", "g", "r", "m"], N=10)
+    ax.imshow(new_system_state, interpolation="nearest", cmap=cmap)
+
+    # Major ticks
+    ax.set_xticks(np.arange(0, full_grid_width, 1))
+    ax.set_yticks(np.arange(0, full_grid_length, 1))
+
+    # Labels for major ticks
+    ax.set_xticklabels(np.arange(1, full_grid_width + 1, 1))
+    ax.set_yticklabels(np.arange(1, full_grid_length + 1, 1))
+
+    # Minor ticks
+    ax.set_xticks(np.arange(-0.5, full_grid_width, 1), minor=True)
+    ax.set_yticks(np.arange(-0.5, full_grid_length, 1), minor=True)
+
+    ax.grid(which="minor", color="w", linestyle="-", linewidth=2)
+
+    plt.tight_layout()
+    plt.show()
+
+
 def build_create_video(
     system_state_list, full_grid_width, full_grid_length, simulation_interval=100
 ):
