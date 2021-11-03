@@ -1,5 +1,5 @@
 numpy
 matplotlib
 ipywidgets
-black
+black[jupyter]
 isort
