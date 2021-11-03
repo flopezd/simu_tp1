@@ -4,7 +4,36 @@ from IPython.display import HTML
 from matplotlib import animation
 from matplotlib.colors import ListedColormap
 
-from automata import CAR, GOING_LEFT_PEDESTRIAN, GOING_UP_CAR, PEDESTRIAN
+from automata import (
+    BLOCK,
+    CAR,
+    CROSSWALK,
+    GOING_DOWN_CAR,
+    GOING_LEFT_PEDESTRIAN,
+    GOING_RIGHT_PEDESTRIAN,
+    GOING_UP_CAR,
+    PEDESTRIAN,
+    PEDESTRIAN_WAIT,
+    ROAD,
+)
+
+CELL_TO_KEY = {
+    ROAD: "R",
+    PEDESTRIAN_WAIT: "W",
+    CROSSWALK: "K",
+    PEDESTRIAN: "P",
+    CAR: "C",
+    GOING_RIGHT_PEDESTRIAN: "P",
+    GOING_DOWN_CAR: "P",
+    GOING_LEFT_PEDESTRIAN: "P",
+    GOING_UP_CAR: "C",
+    BLOCK: "B",
+}
+
+
+def print_system_state(system_state):
+    for row in system_state:
+        print("".join(str(CELL_TO_KEY[cell]) for cell in row))
 
 
 def plot_system_state(system_state, full_grid_width, full_grid_length):

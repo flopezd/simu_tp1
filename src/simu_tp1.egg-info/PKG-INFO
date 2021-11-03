@@ -1,3 +1,13 @@
+Metadata-Version: 2.1
+Name: simu-tp1
+Version: 0.0.1
+Summary: UNKNOWN
+Home-page: https://github.com/flopezd/simu_tp1
+License: UNKNOWN
+Platform: UNKNOWN
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+
 # Environment prerequisites
 Assume we are using:
 
@@ -12,7 +22,6 @@ pyenv install 3.10.0
 pyenv virtualenv 3.10.0 simu_tp1
 pyenv local simu_tp1
 ```
-All the following sections assume u are using the created venv.
 
 # Development flow
 Before commit run isort and black:
@@ -27,8 +36,4 @@ To install in development mode run:
 pip install -e .
 ```
 
-## Testing
-Run the test using:
-```console
-pytest
-```
+
