@@ -2,3 +2,5 @@
 __pycache__
 .vscode
 src/simu_tp1.egg-info
+.idea
+venv
