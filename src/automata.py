@@ -29,19 +29,25 @@ BLOCK = 7
 
 @dataclass
 class PedestrianConflictParameters:
+    car_start_point_length: int = CAR_START_POINT_LENGTH
+    road_width: int = ROAD_WIDTH
     crosswalk_width: int = 5  # 2.5m
     lambda_p: float = 0.8
     # lambda_p: float = 0.13
     pedestrian_waiting_length: int = field(init=False)
+    fixed_pedestrian_waiting_length: int = 0
     full_grid_length: int = field(init=False)
     full_grid_width: int = field(init=False)
 
     def __post_init__(self):
-        self.pedestrian_waiting_length = int(
-            np.ceil(MAXIMUM_WAITING_PEDESTRIANS / self.crosswalk_width)
-        )
-        self.full_grid_length = self.crosswalk_width + 2 * CAR_START_POINT_LENGTH
-        self.full_grid_width = ROAD_WIDTH + 2 * self.pedestrian_waiting_length
+        if self.fixed_pedestrian_waiting_length:
+            self.pedestrian_waiting_length = self.fixed_pedestrian_waiting_length
+        else:
+            self.pedestrian_waiting_length = int(
+                np.ceil(MAXIMUM_WAITING_PEDESTRIANS / self.crosswalk_width)
+            )
+        self.full_grid_length = self.crosswalk_width + 2 * self.car_start_point_length
+        self.full_grid_width = self.road_width + 2 * self.pedestrian_waiting_length
 
 
 class PedestrianConflictAutomataModel:
@@ -59,27 +65,29 @@ class PedestrianConflictAutomataModel:
         full_grid_width: int,
         crosswalk_width: int,
         pedestrian_waiting_length: int,
+        car_start_point_length: int,
+        road_width: int,
     ):
         system_estate = np.zeros((full_grid_length, full_grid_width))
         for i in range(crosswalk_width):
             for j in range(pedestrian_waiting_length):
-                system_estate[i + CAR_START_POINT_LENGTH, j] = PEDESTRIAN_WAIT
+                system_estate[i + car_start_point_length, j] = PEDESTRIAN_WAIT
                 system_estate[
-                    i + CAR_START_POINT_LENGTH,
-                    j + pedestrian_waiting_length + ROAD_WIDTH,
+                    i + car_start_point_length,
+                    j + pedestrian_waiting_length + road_width,
                 ] = PEDESTRIAN_WAIT
 
-            for j in range(ROAD_WIDTH):
+            for j in range(road_width):
                 system_estate[
-                    i + CAR_START_POINT_LENGTH, j + pedestrian_waiting_length
+                    i + car_start_point_length, j + pedestrian_waiting_length
                 ] = CROSSWALK
 
-        for i in range(CAR_START_POINT_LENGTH):
+        for i in range(car_start_point_length):
             for j in range(pedestrian_waiting_length):
-                system_estate[i + CAR_START_POINT_LENGTH + crosswalk_width, j] = BLOCK
+                system_estate[i + car_start_point_length + crosswalk_width, j] = BLOCK
                 system_estate[
-                    i + CAR_START_POINT_LENGTH + crosswalk_width,
-                    j + pedestrian_waiting_length + ROAD_WIDTH,
+                    i + car_start_point_length + crosswalk_width,
+                    j + pedestrian_waiting_length + road_width,
                 ] = BLOCK
         return system_estate
 
@@ -91,10 +99,11 @@ class PedestrianConflictAutomataModel:
         final_length,
         length_increment,
         pedestrian_direction,
+        car_start_point_length,
     ):
         i = 0
         j = initial_length
-        while system_state[i + CAR_START_POINT_LENGTH, j] != PEDESTRIAN_WAIT:
+        while system_state[i + car_start_point_length, j] != PEDESTRIAN_WAIT:
             if i == crosswalk_width - 1:
                 j = length_increment + j
                 if j == final_length:
@@ -102,7 +111,7 @@ class PedestrianConflictAutomataModel:
             i = (1 + i) % crosswalk_width
 
         if j != -1:
-            system_state[i + CAR_START_POINT_LENGTH, j] = pedestrian_direction
+            system_state[i + car_start_point_length, j] = pedestrian_direction
         else:
             print("Max pedastrians in waiting space")
 
@@ -137,6 +146,7 @@ class PedestrianConflictAutomataModel:
         crosswalk_width,
         pedestrian_waiting_length,
         full_grid_width,
+        road_width,
     ):
         new_pedestrians_left = np.random.poisson(lambda_p)
         new_pedestrians_right = np.random.poisson(lambda_p)
@@ -157,7 +167,7 @@ class PedestrianConflictAutomataModel:
             self.add_pedestrians(
                 system_state,
                 crosswalk_width,
-                pedestrian_waiting_length + ROAD_WIDTH,
+                pedestrian_waiting_length + road_width,
                 full_grid_width,
                 1,
                 GOING_LEFT_PEDESTRIAN,
@@ -166,18 +176,20 @@ class PedestrianConflictAutomataModel:
         for _ in range(new_cars_up):
             self.add_car(
                 system_state,
-                CAR_START_POINT_LENGTH - CAR_LENGTH,
+                self.pedestrian_conflict_parameters.car_start_point_length - CAR_LENGTH,
                 pedestrian_waiting_length + EMPTY_LINE_WIDTH,
                 pedestrian_waiting_length
                 + EMPTY_LINE_WIDTH
                 + ROAD_LINE_WIDTH * LINES_PER_DIRECTION,
                 GOING_DOWN_CAR,
+                self.pedestrian_conflict_parameters.car_start_point_length,
             )
 
         for _ in range(new_cars_down):
             self.add_car(
                 system_state,
-                CAR_START_POINT_LENGTH + crosswalk_width,
+                self.pedestrian_conflict_parameters.car_start_point_length
+                + crosswalk_width,
                 pedestrian_waiting_length
                 + EMPTY_LINE_WIDTH
                 + ROAD_LINE_WIDTH * LINES_PER_DIRECTION,
@@ -185,9 +197,10 @@ class PedestrianConflictAutomataModel:
                 + EMPTY_LINE_WIDTH
                 + ROAD_LINE_WIDTH * ROAD_TOTAL_LINES,
                 GOING_UP_CAR,
+                self.pedestrian_conflict_parameters.car_start_point_length,
             )
 
-    def move_pedestrians(self, system_state, pedestrian_waiting_length):
+    def move_pedestrians(self, system_state, pedestrian_waiting_length, road_width):
         i_gr_pedestrians, j_gr_pedestrians = np.where(
             system_state == GOING_RIGHT_PEDESTRIAN
         )
@@ -288,7 +301,7 @@ class PedestrianConflictAutomataModel:
                                 and prev_dir == GOING_RIGHT_PEDESTRIAN
                             )
                             or (
-                                prev_p_j < ROAD_WIDTH + pedestrian_waiting_length
+                                prev_p_j < road_width + pedestrian_waiting_length
                                 and prev_dir == GOING_LEFT_PEDESTRIAN
                             )
                         )
@@ -296,11 +309,11 @@ class PedestrianConflictAutomataModel:
                     )
                     if not (
                         (
-                            j > ROAD_WIDTH + pedestrian_waiting_length
+                            j > road_width + pedestrian_waiting_length
                             and GOING_RIGHT_PEDESTRIAN
                         )
                         or (
-                            j > ROAD_WIDTH + pedestrian_waiting_length
+                            j > road_width + pedestrian_waiting_length
                             and GOING_LEFT_PEDESTRIAN
                         )
                     ):
@@ -312,6 +325,8 @@ class PedestrianConflictAutomataModel:
             self.pedestrian_conflict_parameters.full_grid_width,
             self.pedestrian_conflict_parameters.crosswalk_width,
             self.pedestrian_conflict_parameters.pedestrian_waiting_length,
+            self.pedestrian_conflict_parameters.car_start_point_length,
+            self.pedestrian_conflict_parameters.road_width,
         )
         result = []
         for _ in range(iterations):
