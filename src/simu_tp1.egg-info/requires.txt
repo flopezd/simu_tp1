@@ -1,6 +1,0 @@
-numpy
-matplotlib
-ipywidgets
-black[jupyter]
-isort
-pytest

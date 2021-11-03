@@ -1,8 +1,0 @@
-README.md
-pyproject.toml
-setup.cfg
-src/simu_tp1.egg-info/PKG-INFO
-src/simu_tp1.egg-info/SOURCES.txt
-src/simu_tp1.egg-info/dependency_links.txt
-src/simu_tp1.egg-info/requires.txt
-src/simu_tp1.egg-info/top_level.txt
